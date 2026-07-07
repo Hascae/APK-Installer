@@ -1,0 +1,44 @@
+# 安裝大師 — 正式版構建（未簽名 APK）
+#
+# 重要：本流程「只能手動觸發」（workflow_dispatch），
+# 不會因 push / PR / 排程自動執行，符合「構建純手動、由使用者觸發」的原則。
+name: 構建未簽名正式版 APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: flutter build apk --release
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出原始碼
+        uses: actions/checkout@v4
+
+      - name: 設定 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 設定 Flutter（stable）
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 取得依賴
+        run: flutter pub get
+
+      - name: 靜態分析（僅回報，不中斷構建）
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+
+      - name: 構建正式版 APK（未簽名）
+        run: flutter build apk --release
+
+      - name: 上傳產物
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-unsigned
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
