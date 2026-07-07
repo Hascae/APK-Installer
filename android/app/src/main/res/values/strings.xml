@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">安裝大師</string>
+    <string name="notif_channel_install">安裝結果</string>
+    <string name="notif_channel_install_desc">顯示應用程式安裝與解除安裝的結果</string>
+    <string name="notif_install_success">安裝成功</string>
+    <string name="notif_install_failure">安裝失敗</string>
+    <string name="notif_uninstall_success">解除安裝成功</string>
+    <string name="notif_uninstall_failure">解除安裝失敗</string>
+</resources>

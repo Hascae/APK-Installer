@@ -1,0 +1,36 @@
+name: apk_installer
+description: 安裝大師 — 功能完整的 APK / APKM / XAPK / APKS 安裝器（繁體中文）
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # 檔案挑選（SAF 文件選擇器）
+  file_picker: ^8.1.4
+  # 裝置資訊（ABI / SDK 版本 / 機型）
+  device_info_plus: ^11.2.0
+  # 執行期權限（通知、儲存空間）
+  permission_handler: ^11.3.1
+  # 本機設定與歷史紀錄儲存
+  shared_preferences: ^2.3.4
+  # 快取與檔案路徑
+  path_provider: ^2.1.5
+  # 匯出 APK 後分享 / 另存
+  share_plus: ^10.1.2
+  # 關於頁面的版本資訊
+  package_info_plus: ^8.1.2
+
+dev_dependencies:
+  flutter_lints: ^5.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

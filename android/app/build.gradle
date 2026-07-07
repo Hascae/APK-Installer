@@ -1,0 +1,59 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.hascae.apkinstaller"
+    compileSdk = 36
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        // Android 7（API 24/25）缺少部分 java.time 等 API，啟用核心函式庫脫糖以真正相容
+        coreLibraryDesugaringEnabled = true
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        applicationId = "com.hascae.apkinstaller"
+        // 實際支援範圍：Android 7.0（API 24）～ Android 16（API 36）
+        minSdk = 24
+        targetSdk = 36
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            // 依需求產出「未簽名」的正式版 APK：不設定任何簽名設定
+            signingConfig = null
+            // 不做裁剪與壓縮（依需求不在意體積）
+            minifyEnabled = false
+            shrinkResources = false
+        }
+        debug {
+            applicationIdSuffix = ".debug"
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
+    implementation "androidx.core:core-ktx:1.15.0"
+    implementation "androidx.annotation:annotation:1.9.1"
+}
