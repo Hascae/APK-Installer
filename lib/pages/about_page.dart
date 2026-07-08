@@ -29,7 +29,9 @@ class _AboutPageState extends State<AboutPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('關於')),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        // 底部加上系統導覽列安全區
+        padding: EdgeInsets.fromLTRB(
+            24, 24, 24, 24 + MediaQuery.of(context).padding.bottom),
         children: [
           const SizedBox(height: 16),
           const Center(child: BrandLogo(size: 96)),

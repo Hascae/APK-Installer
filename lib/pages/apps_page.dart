@@ -240,6 +240,9 @@ class _AppsPageState extends State<AppsPage> {
                     : RefreshIndicator(
                         onRefresh: _load,
                         child: ListView.builder(
+                          // 底部保留系統導覽列安全區
+                          padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).padding.bottom),
                           itemCount: list.length,
                           itemBuilder: (_, i) => _appTile(list[i]),
                         ),

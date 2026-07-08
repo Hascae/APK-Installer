@@ -65,7 +65,9 @@ class _SettingsPageState extends State<SettingsPage>
     return Scaffold(
       appBar: AppBar(title: const Text('設定')),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
+        // 底部加上系統導覽列安全區，避免虛擬按鍵遮住最後的項目
+        padding: EdgeInsets.only(
+            bottom: 24 + MediaQuery.of(context).padding.bottom),
         children: [
           _sectionTitle('安裝偏好'),
           SwitchListTile(

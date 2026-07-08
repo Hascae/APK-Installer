@@ -76,6 +76,9 @@ class _HistoryPageState extends State<HistoryPage> {
           : _entries.isEmpty
               ? const EmptyState(message: '還沒有任何安裝紀錄\n完成第一次安裝後會顯示在這裡')
               : ListView.separated(
+                  // 底部保留系統導覽列安全區
+                  padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).padding.bottom),
                   itemCount: _entries.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (_, i) {
