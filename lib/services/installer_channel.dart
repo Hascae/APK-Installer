@@ -55,6 +55,13 @@ class InstallerChannel {
   Future<String?> takePendingFile() =>
       _methods.invokeMethod<String>('takePendingFile');
 
+  /// 開啟原生 SAF 檔案選擇器（可多選），回傳所選檔案的 URI 清單；取消時為空。
+  /// 原生層帶入完整 MIME 清單，apkm / xapk / apks 皆可點選。
+  Future<List<String>> pickFiles() async {
+    final list = await _methods.invokeMethod<List<dynamic>>('pickFiles');
+    return (list ?? const []).cast<String>();
+  }
+
   /// 將 content:// 匯入快取，回傳本機路徑。
   Future<({String path, String name, int size})> importUri(String uri) async {
     final m = await _methods

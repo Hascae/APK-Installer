@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -29,6 +28,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   List<HistoryEntry> _recent = [];
   StreamSubscription<NativeEvent>? _sub;
   bool _busyImporting = false;
+  int _importIndex = 0;
+  int _importCount = 0;
 
   @override
   void initState() {
@@ -89,32 +90,40 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   // ---------- 開啟檔案 ----------
 
   Future<void> _pickAndInstall() async {
-    FilePickerResult? result;
+    if (_busyImporting) return;
+    List<String> uris;
     try {
-      result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const ['apk', 'apkm', 'xapk', 'apks', 'zip'],
-        allowMultiple: true,
-      );
-    } catch (_) {
-      // 個別機型的檔案選擇器不支援自訂副檔名 → 退回不過濾
+      // 原生 SAF 選擇器：MIME 清單由原生層帶入，apkm / xapk / apks 皆可點選
+      uris = await _channel.pickFiles();
+    } catch (e) {
+      _toast('無法開啟檔案選擇器：$e');
+      return;
+    }
+    if (uris.isEmpty) return;
+
+    // 逐一匯入快取（大檔案串流複製，顯示進度）
+    setState(() {
+      _busyImporting = true;
+      _importIndex = 0;
+      _importCount = uris.length;
+    });
+    final paths = <String>[];
+    for (var i = 0; i < uris.length; i++) {
+      if (!mounted) return;
+      setState(() => _importIndex = i + 1);
       try {
-        result = await FilePicker.platform.pickFiles(allowMultiple: true);
+        final imported = await _channel.importUri(uris[i]);
+        paths.add(imported.path);
       } catch (e) {
-        _toast('無法開啟檔案選擇器：$e');
-        return;
+        _toast('第 ${i + 1} 個檔案讀取失敗：$e');
       }
     }
-    if (result == null || result.files.isEmpty) return;
-    final paths = result.files
-        .map((f) => f.path)
-        .whereType<String>()
-        .toList();
+    if (!mounted) return;
+    setState(() => _busyImporting = false);
     if (paths.isEmpty) {
       _toast('無法讀取所選檔案');
       return;
     }
-    if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => InstallPage(paths: paths)),
     );
@@ -123,7 +132,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   Future<void> _openExternalUri(String uri) async {
     if (_busyImporting) return;
-    setState(() => _busyImporting = true);
+    setState(() {
+      _busyImporting = true;
+      _importCount = 1;
+      _importIndex = 1;
+    });
     try {
       final imported = await _channel.importUri(uri);
       if (!mounted) return;
@@ -190,6 +203,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _BigActionButton(
                 busy: _busyImporting,
+                busyLabel: _importCount > 1
+                    ? '正在讀取檔案（$_importIndex / $_importCount）…'
+                    : '正在讀取檔案…',
                 onTap: _pickAndInstall,
               ),
             ),
@@ -328,8 +344,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 class _BigActionButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool busy;
+  final String busyLabel;
 
-  const _BigActionButton({required this.onTap, required this.busy});
+  const _BigActionButton({
+    required this.onTap,
+    required this.busy,
+    this.busyLabel = '正在讀取檔案…',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -363,7 +384,7 @@ class _BigActionButton extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(busy ? '正在讀取檔案…' : '選擇安裝包',
+                      Text(busy ? busyLabel : '選擇安裝包',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,

@@ -12,8 +12,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  # 檔案挑選（SAF 文件選擇器）
-  file_picker: ^8.1.4
+  # 檔案挑選改由原生層直接呼叫 SAF（可正確選取 apkm / xapk / apks）
   # 裝置資訊（ABI / SDK 版本 / 機型）
   device_info_plus: ^11.2.0
   # 執行期權限（通知、儲存空間）

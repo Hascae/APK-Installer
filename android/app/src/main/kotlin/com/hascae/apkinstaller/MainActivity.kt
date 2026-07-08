@@ -19,6 +19,22 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val METHOD_CHANNEL = "apkinstaller/methods"
         private const val EVENT_CHANNEL = "apkinstaller/events"
+        private const val REQUEST_PICK_FILES = 61042
+
+        /**
+         * SAF 選擇器以 MIME 類型過濾，無法直接指定副檔名。
+         * .apkm / .xapk / .apks 屬於未知副檔名，檔案提供者多回報為
+         * application/octet-stream —— 必須包含它，否則這些檔案會被灰掉無法點選。
+         */
+        private val PICK_MIME_TYPES = arrayOf(
+            "application/vnd.android.package-archive", // .apk
+            "application/zip",
+            "application/x-zip-compressed",
+            "application/octet-stream", // .apkm / .xapk / .apks（未知副檔名的通用型別）
+            "application/vnd.apkm",
+            "application/x-apks",
+            "application/xapk-package-archive"
+        )
     }
 
     private val executor = Executors.newSingleThreadExecutor()
@@ -26,6 +42,9 @@ class MainActivity : FlutterActivity() {
 
     /** 由檔案管理器 / 分享開啟時暫存的 URI，待 Flutter 端取走。 */
     private var pendingUri: String? = null
+
+    /** 檔案選擇器等待中的回覆。 */
+    private var pickFilesResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -51,6 +70,7 @@ class MainActivity : FlutterActivity() {
                         pendingUri = null
                         result.success(uri)
                     }
+                    "pickFiles" -> pickFiles(result)
                     "importUri" -> runAsync(result) {
                         ArchiveAnalyzer.importUri(this, call.argument<String>("uri")!!)
                     }
@@ -127,6 +147,69 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+    }
+
+    // ---------- 檔案選擇器（原生 SAF，正確涵蓋 apkm / xapk / apks） ----------
+
+    private fun pickFiles(result: MethodChannel.Result) {
+        if (pickFilesResult != null) {
+            result.success(emptyList<String>())
+            return
+        }
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, PICK_MIME_TYPES)
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
+        pickFilesResult = result
+        try {
+            startActivityForResult(intent, REQUEST_PICK_FILES)
+        } catch (_: Exception) {
+            // 極少數機型沒有 SAF 文件選擇器 → 退回 GET_CONTENT
+            try {
+                val fallback = Intent(Intent.ACTION_GET_CONTENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "*/*"
+                    putExtra(Intent.EXTRA_MIME_TYPES, PICK_MIME_TYPES)
+                    putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                }
+                startActivityForResult(fallback, REQUEST_PICK_FILES)
+            } catch (e: Exception) {
+                pickFilesResult = null
+                result.error("no_picker", "此裝置沒有可用的檔案選擇器", null)
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQUEST_PICK_FILES) return
+        val result = pickFilesResult ?: return
+        pickFilesResult = null
+        if (resultCode != RESULT_OK || data == null) {
+            result.success(emptyList<String>())
+            return
+        }
+        val uris = ArrayList<String>()
+        val clip = data.clipData
+        if (clip != null) {
+            for (i in 0 until clip.itemCount) {
+                uris.add(clip.getItemAt(i).uri.toString())
+            }
+        } else {
+            data.data?.let { uris.add(it.toString()) }
+        }
+        // 盡量保留讀取授權，供之後的串流匯入使用
+        for (u in uris) {
+            try {
+                contentResolver.takePersistableUriPermission(
+                    Uri.parse(u), Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {
+            }
+        }
+        result.success(uris)
     }
 
     override fun onNewIntent(intent: Intent) {
