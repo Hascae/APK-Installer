@@ -1,7 +1,6 @@
 import '../models.dart';
 
-/// 依裝置條件（ABI / 螢幕密度 / 語言）自動挑選分割包，
-/// 對標並超越 APKMirror Installer 的自動選擇邏輯。
+/// 依裝置條件（ABI / 螢幕密度 / 語言）自動挑選分割包。
 class SplitSelector {
   static const _dpiBuckets = <String, int>{
     'ldpi': 120,
